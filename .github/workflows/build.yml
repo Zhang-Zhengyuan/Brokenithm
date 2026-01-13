@@ -12,17 +12,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.2' # 根据你的 Gemfile 调整版本，通常 3.2 比较稳定
-          bundler-cache: true
+          ruby-version: '3.2'
+          bundler-cache: false # 暂时关闭缓存，防止坏缓存干扰
 
-      - name: Install CocoaPods
+      - name: Install Dependencies
         run: |
+          # 升级 RubyGems 和 Bundler
+          gem update --system
+          gem install bundler
+          
+          # 尝试安装 Gem 依赖，如果失败则尝试跳过一些限制
+          bundle install || bundle update
+          
+          # 安装 CocoaPods
           gem install cocoapods
-          pod install
+          
+          # 更新并安装 Pods
+          pod install --repo-update
 
       - name: Build Project (Unsigned)
         run: |
