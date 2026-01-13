@@ -1,48 +1,15 @@
-name: Build Unsigned IPA
-
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install CocoaPods and Setup
-        run: |
-          # 直接使用系统自带的 Ruby 安装 CocoaPods
-          sudo gem install cocoapods
-          # 如果你的项目根目录下有 Podfile，执行安装
-          pod install
-
-      - name: Build Project (Unsigned)
+- name: Build Project (Unsigned)
         run: |
           xcodebuild -workspace Brokenithm-iOS.xcworkspace \
                      -scheme Brokenithm-iOS \
                      -configuration Release \
                      -sdk iphoneos \
                      -derivedDataPath build \
+                     IPHONEOS_DEPLOYMENT_TARGET=12.0 \
                      CODE_SIGNING_ALLOWED=NO \
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGN_IDENTITY="" \
                      AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     ENABLE_BITCODE=NO \
+                     COMPILER_INDEX_STORE_ENABLE=NO \
                      clean build
-
-      - name: Create IPA Structure
-        run: |
-          mkdir -p Payload
-          # 寻找生成的 .app 文件并移动到 Payload 文件夹
-          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
-          # 压缩为 ipa
-          zip -r Brokenithm-iOS.ipa Payload
-
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Brokenithm-Unsigned-IPA
-          path: Brokenithm-iOS.ipa
