@@ -2,8 +2,8 @@ name: Build Unsigned IPA
 
 on:
   push:
-    branches: [ "main" ]  # 当你推送代码到 main 分支时触发
-  workflow_dispatch:      # 允许你在 GitHub 页面上手动点击运行
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,27 +12,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: false # 暂时关闭缓存，防止坏缓存干扰
 
-      - name: Install Dependencies
+      - name: Install CocoaPods and Setup
         run: |
-          # 升级 RubyGems 和 Bundler
-          gem update --system
-          gem install bundler
-          
-          # 尝试安装 Gem 依赖，如果失败则尝试跳过一些限制
-          bundle install || bundle update
-          
-          # 安装 CocoaPods
-          gem install cocoapods
-          
-          # 更新并安装 Pods
-          pod install --repo-update
+          # 直接使用系统自带的 Ruby 安装 CocoaPods
+          sudo gem install cocoapods
+          # 如果你的项目根目录下有 Podfile，执行安装
+          pod install
 
       - name: Build Project (Unsigned)
         run: |
