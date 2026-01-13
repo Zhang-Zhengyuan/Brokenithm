@@ -1,15 +1,71 @@
-- name: Build Project (Unsigned)
+name: Build Unsigned IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
         run: |
-          xcodebuild -workspace Brokenithm-iOS.xcworkspace \
-                     -scheme Brokenithm-iOS \
-                     -configuration Release \
-                     -sdk iphoneos \
-                     -derivedDataPath build \
-                     IPHONEOS_DEPLOYMENT_TARGET=12.0 \
-                     CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGN_IDENTITY="" \
-                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
-                     ENABLE_BITCODE=NO \
-                     COMPILER_INDEX_STORE_ENABLE=NO \
-                     clean build
+          sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # ===== 修改这里 =====
+      # scheme 和 workspace 名必须与你项目一致
+      - name: Build archive (no signing)
+        run: |
+          xcodebuild \
+            -workspace Brokenithm-iOS.xcworkspace \
+            -scheme Brokenithm-iOS \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/Brokenithm.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            clean archive
+
+      - name: Create ExportOptions.plist
+        run: |
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export IPA (unsigned)
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/Brokenithm.xcarchive \
+            -exportPath build/ipa \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brokenithm-IPA
+          path: build/ipa/*.ipa
