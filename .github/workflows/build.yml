@@ -43,15 +43,26 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
             IPHONEOS_DEPLOYMENT_TARGET=12.0
 
       - name: Create unsigned IPA
         run: |
           set -euo pipefail
+          # 创建 Payload 目录结构
           mkdir -p artifacts/Payload
-          cp -r build/Brokenithm.xcarchive/Products/Applications/*.app artifacts/Payload/
+          
+          # 复制 .app 到 Payload
+          APP_PATH=$(find build/Brokenithm.xcarchive/Products/Applications -name "*.app" -type d | head -1)
+          cp -r "$APP_PATH" artifacts/Payload/
+          
+          # 确保 Info.plist 是二进制格式（某些签名工具需要）
+          APP_NAME=$(basename "$APP_PATH")
+          plutil -convert binary1 "artifacts/Payload/$APP_NAME/Info.plist"
+          
+          # 打包 IPA
           cd artifacts
-          zip -r Brokenithm-unsigned.ipa Payload
+          zip -r -9 Brokenithm-unsigned.ipa Payload
           rm -rf Payload
           echo "IPA_PATH=$(pwd)/Brokenithm-unsigned.ipa" >> $GITHUB_ENV
 
