@@ -28,6 +28,9 @@ jobs:
           gem install bundler -v '~> 2.5'
           bundle install
 
+      - name: Install CocoaPods dependencies
+        run: pod install --repo-update
+
       - name: Build unsigned IPA via Fastlane gym
         run: |
           set -euo pipefail
