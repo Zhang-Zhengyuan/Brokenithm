@@ -31,19 +31,29 @@ jobs:
       - name: Install CocoaPods dependencies
         run: pod install --repo-update
 
-      - name: Build unsigned IPA via Fastlane gym
+      - name: Build unsigned app with xcodebuild
         run: |
           set -euo pipefail
-          mkdir -p artifacts
-          bundle exec fastlane gym \
-            --workspace "Brokenithm-iOS.xcworkspace" \
-            --scheme "Brokenithm-iOS" \
-            --configuration "Release" \
-            --skip_codesigning true \
-            --xcargs "IPHONEOS_DEPLOYMENT_TARGET=12.0" \
-            --output_directory "artifacts" \
-            --output_name "Brokenithm-unsigned"
-          echo "IPA_PATH=$(pwd)/artifacts/Brokenithm-unsigned.ipa" >> $GITHUB_ENV
+          xcodebuild archive \
+            -workspace "Brokenithm-iOS.xcworkspace" \
+            -scheme "Brokenithm-iOS" \
+            -configuration Release \
+            -archivePath build/Brokenithm.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            IPHONEOS_DEPLOYMENT_TARGET=12.0
+
+      - name: Create unsigned IPA
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/Payload
+          cp -r build/Brokenithm.xcarchive/Products/Applications/*.app artifacts/Payload/
+          cd artifacts
+          zip -r Brokenithm-unsigned.ipa Payload
+          rm -rf Payload
+          echo "IPA_PATH=$(pwd)/Brokenithm-unsigned.ipa" >> $GITHUB_ENV
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
